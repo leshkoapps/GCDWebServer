@@ -1307,6 +1307,7 @@
 				PRODUCT_NAME = GCDWebServers;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -1325,6 +1326,7 @@
 				PRODUCT_NAME = GCDWebServers;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
