@@ -278,7 +278,9 @@ static inline NSUInteger _ScanHexNumber(const void* bytes, NSUInteger size) {
 - (void)_writeHeadersWithCompletionBlock:(WriteHeadersCompletionBlock)block {
   GWS_DCHECK(_responseMessage);
   CFDataRef data = CFHTTPMessageCopySerializedMessage(_responseMessage);
-  [self _writeData:(__bridge NSData*)data withCompletionBlock:block];
+  NSData *nsdata = (__bridge NSData*)data;
+  GWS_LOG_DEBUG(@"Connection writeHeaders %@ bytes on socket %i",[[NSString alloc] initWithData:nsdata encoding:NSUTF8StringEncoding] , _socket);
+  [self _writeData:nsdata withCompletionBlock:block];
   CFRelease(data);
 }
 
@@ -772,7 +774,7 @@ static inline NSUInteger _ScanHexNumber(const void* bytes, NSUInteger size) {
 }
 
 - (void)processRequest:(GCDWebServerRequest*)request completion:(GCDWebServerCompletionBlock)completion {
-  GWS_LOG_DEBUG(@"Connection on socket %i processing request \"%@ %@\" with %lu bytes body", _socket, _virtualHEAD ? @"HEAD" : _request.method, _request.path, (unsigned long)_bytesRead);
+  GWS_LOG_DEBUG(@"Connection on socket %i processing request \"%@ %@\" with %lu bytes body, headers %@", _socket, _virtualHEAD ? @"HEAD" : _request.method, _request.path, (unsigned long)_bytesRead, _request.headers);
   _handler.asyncProcessBlock(request, [completion copy]);
 }
 
