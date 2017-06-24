@@ -1318,6 +1318,10 @@
 				INFOPLIST_FILE = Frameworks/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				OTHER_CFLAGS = (
+					"-DNS_BLOCK_ASSERTIONS=1",
+					"-DNDEBUG",
+				);
 				PRODUCT_NAME = GCDWebServers;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
