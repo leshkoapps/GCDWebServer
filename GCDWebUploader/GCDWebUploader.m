@@ -309,9 +309,11 @@ NS_ASSUME_NONNULL_END
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_Forbidden message:@"Uploading file \"%@\" to \"%@\" is not permitted", file.fileName, relativePath];
   }
 
-  NSError* error = nil;
-  if (![[NSFileManager defaultManager] moveItemAtPath:file.temporaryPath toPath:absolutePath error:&error]) {
-    return [GCDWebServerErrorResponse responseWithServerError:kGCDWebServerHTTPStatusCode_InternalServerError underlyingError:error message:@"Failed moving uploaded file to \"%@\"", relativePath];
+  NSError *error = nil;
+  if (absolutePath == nil ||
+      file.temporaryPath==nil ||
+      [[NSFileManager defaultManager] moveItemAtPath:file.temporaryPath toPath:absolutePath error:&error]==NO) {
+        return [GCDWebServerErrorResponse responseWithServerError:kGCDWebServerHTTPStatusCode_InternalServerError underlyingError:error message:@"Failed moving uploaded file to \"%@\"", relativePath];
   }
 
   if ([self.delegate respondsToSelector:@selector(webUploader:didUploadFileAtPath:)]) {
