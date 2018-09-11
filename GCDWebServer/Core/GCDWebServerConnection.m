@@ -612,7 +612,7 @@ static inline NSUInteger _ScanHexNumber(const void* bytes, NSUInteger size) {
 - (void)writeHeadersWithCompletionBlock:(WriteHeadersCompletionBlock)block {
   GWS_DCHECK(_responseMessage);
   CFDataRef data = CFHTTPMessageCopySerializedMessage(_responseMessage);
-  GWS_LOG_DEBUG(@"Write response headers/n%@", [[NSString alloc] initWithData:(__bridge NSData*)data encoding:NSUTF8StringEncoding]);
+  GWS_LOG_DEBUG(@"\n\nWEB_SERVER_RESPONSE_HEADERS\n%@", [[NSString alloc] initWithData:(__bridge NSData*)data encoding:NSUTF8StringEncoding]);
   [self writeData:(__bridge NSData*)data withCompletionBlock:block];
   CFRelease(data);
 }
