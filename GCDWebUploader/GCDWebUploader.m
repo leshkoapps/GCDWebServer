@@ -50,7 +50,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface GCDWebUploader (Methods)
 - (nullable GCDWebServerResponse*)listDirectory:(GCDWebServerRequest*)request;
-- (nullable GCDWebServerResponse*)downloadFile:(GCDWebServerRequest*)request;
+- (nullable GCDWebServerResponse*)downloadFile:(GCDWebServerRequest*)request isAttachment:(BOOL)isAttachment;
 - (nullable GCDWebServerResponse*)uploadFile:(GCDWebServerMultiPartFormRequest*)request;
 - (nullable GCDWebServerResponse*)moveItem:(GCDWebServerURLEncodedFormRequest*)request;
 - (nullable GCDWebServerResponse*)deleteItem:(GCDWebServerURLEncodedFormRequest*)request;
@@ -78,7 +78,7 @@ NS_ASSUME_NONNULL_END
 
     // Resource files
     [self addGETHandlerForBasePath:@"/" directoryPath:(NSString*)[siteBundle resourcePath] indexFilename:nil cacheAge:3600 allowRangeRequests:NO];
-
+    
     // Web page
     [self addHandlerForMethod:@"GET"
                          path:@"/"
@@ -133,7 +133,16 @@ NS_ASSUME_NONNULL_END
                                                                      @"header" : header,
                                                                      @"prologue" : prologue,
                                                                      @"epilogue" : epilogue,
-                                                                     @"footer" : footer
+                                                                     @"footer" : footer,
+                                                                     @"upload" : NSLocalizedString(@"Upload", nil),
+                                                                     @"refresh" : NSLocalizedString(@"Refresh", nil),
+                                                                     @"upload_in_progress" : NSLocalizedString(@"Upload in progress", nil),
+                                                                     @"new_folder" : NSLocalizedString(@"New Folder", nil),
+                                                                     @"enter_a_name_for_this_folder" : NSLocalizedString(@"Enter a name for this folder.", nil),
+                                                                     @"save" : NSLocalizedString(@"Save", nil),
+                                                                     @"cancel" : NSLocalizedString(@"Cancel", nil),
+                                                                     @"move" : NSLocalizedString(@"Move", nil),
+                                                                     @"enter_a_location_for_this_item" : NSLocalizedString(@"Enter a location for this item.", nil),
                                                                    }];
 
                  }];
@@ -151,8 +160,17 @@ NS_ASSUME_NONNULL_END
                          path:@"/download"
                  requestClass:[GCDWebServerRequest class]
                  processBlock:^GCDWebServerResponse*(GCDWebServerRequest* request) {
-                   return [server downloadFile:request];
+                   return [server downloadFile:request isAttachment:YES];
                  }];
+    
+    // File open
+    [self addHandlerForMethod:@"GET"
+                         path:@"/openfile"
+                 requestClass:[GCDWebServerRequest class]
+                 processBlock:^GCDWebServerResponse*(GCDWebServerRequest* request) {
+                   return [server downloadFile:request  isAttachment:NO];
+                 }];
+    
 
     // File upload
     [self addHandlerForMethod:@"POST"
@@ -267,7 +285,7 @@ NS_ASSUME_NONNULL_END
   return [GCDWebServerDataResponse responseWithJSONObject:array];
 }
 
-- (GCDWebServerResponse*)downloadFile:(GCDWebServerRequest*)request {
+- (GCDWebServerResponse*)downloadFile:(GCDWebServerRequest*)request isAttachment:(BOOL)isAttachment{
   NSString* relativePath = [[request query] objectForKey:@"path"];
   NSString* absolutePath = [_uploadDirectory stringByAppendingPathComponent:relativePath];
   BOOL isDirectory = NO;
@@ -275,7 +293,16 @@ NS_ASSUME_NONNULL_END
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_NotFound message:@"\"%@\" does not exist", relativePath];
   }
   if (isDirectory) {
-    return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_BadRequest message:@"\"%@\" is a directory", relativePath];
+    NSString *archivePath = nil;
+    if ([self.delegate respondsToSelector:@selector(webUploader:wantsToDownloadDirectoryAtPath:)]) {
+       archivePath = [self.delegate webUploader:self wantsToDownloadDirectoryAtPath:absolutePath];
+    }
+    if(archivePath){
+      absolutePath = archivePath;
+    }
+    else{
+      return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_BadRequest message:@"\"%@\" is a directory", relativePath];
+    }
   }
 
   NSString* fileName = [absolutePath lastPathComponent];
@@ -288,7 +315,7 @@ NS_ASSUME_NONNULL_END
       [self.delegate webUploader:self didDownloadFileAtPath:absolutePath];
     });
   }
-  return [GCDWebServerFileResponse responseWithFile:absolutePath isAttachment:YES];
+  return [GCDWebServerFileResponse responseWithFile:absolutePath isAttachment:isAttachment];
 }
 
 - (GCDWebServerResponse*)uploadFile:(GCDWebServerMultiPartFormRequest*)request {
@@ -309,6 +336,8 @@ NS_ASSUME_NONNULL_END
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_Forbidden message:@"Uploading file \"%@\" to \"%@\" is not permitted", file.fileName, relativePath];
   }
 
+  [[NSFileManager defaultManager] createDirectoryAtPath:[absolutePath stringByDeletingLastPathComponent] withIntermediateDirectories:YES attributes:nil error:nil];
+  
   NSError *error = nil;
   if (absolutePath == nil ||
       file.temporaryPath==nil ||

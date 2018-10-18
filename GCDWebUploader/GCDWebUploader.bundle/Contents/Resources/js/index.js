@@ -130,8 +130,7 @@ function _reload(path) {
       },
       onreset: function(settings, original) {
         _enableReloads();
-      },
-      tooltip: 'Click to rename...'
+      }
     });
     
     $(".button-download").click(function(event) {
@@ -144,6 +143,13 @@ function _reload(path) {
     $(".button-open").click(function(event) {
       var path = $(this).parent().parent().data("path");
       _reload(path);
+    });
+          
+    $(".button-open-file").click(function(event) {
+        var path = $(this).parent().parent().data("path");
+        setTimeout(function() {
+           window.location = "openfile?path=" + encodeURIComponent(path);
+        }, 0);
     });
     
     $(".button-move").click(function(event) {
@@ -194,9 +200,10 @@ $(document).ready(function() {
     pasteZone: null,
     autoUpload: true,
     sequentialUploads: true,
-    // limitConcurrentUploads: 2,
-    // forceIframeTransport: true,
-    
+    sequentialUploads: false,
+    limitConcurrentUploads: 3,
+    progressInterval: 500,
+    bitrateInterval: 1000,
     url: 'upload',
     type: 'POST',
     dataType: 'json',
@@ -211,16 +218,58 @@ $(document).ready(function() {
     
     add: function(e, data) {
       var file = data.files[0];
-      data.formData = {
-        path: _path
-      };
-      data.context = $(tmpl("template-uploads", {
-        path: _path + file.name
-      })).appendTo("#uploads");
-      var jqXHR = data.submit();
-      data.context.find("button").click(function(event) {
-        jqXHR.abort();
-      });
+                              
+      var obj = data.files[0];
+      var file = obj;
+      if(obj instanceof File){
+         file = obj;
+      }
+      else if(obj.entry._file !== undefined && obj.entry._file instanceof File){
+         file = obj.entry._file;
+      }
+      else if(obj.entry !== undefined && obj.entry instanceof FileSystemDirectoryEntry && StringUtils.pathExtension(obj.entry.name)==="zip"){
+         file = {name: obj.entry.name.replace(/^.*\\/, ''), type: "application/zip"};
+      }
+                              
+      if(file!==null){
+          var destinationPath = _path;
+          if (file.relativePath !== undefined){
+             destinationPath = destinationPath + file.relativePath;
+          }
+          data.formData = {
+             path: destinationPath
+          };
+          var components = destinationPath.split("/").slice(1, -1);
+          var destinationPathValid = true;
+          for (var i = 0; i < components.length; i++) {
+              var subpath = "" + components[i];
+              if(StringUtils.isFileNameSupported(subpath)===false){
+                  destinationPathValid = false;
+                  break;
+              }
+          }
+          if(StringUtils.isFileNameSupported(file.name)===true && destinationPathValid===true){
+                              
+              var resultPath = destinationPath === "/" ? destinationPath : "/"+StringUtils.lastPathComponent(destinationPath);
+              var fullPath = resultPath + "/" + file.name;
+                              
+              data.context = $(tmpl("template-uploads", {
+                   name: file.name,
+                   path: resultPath,
+                   fullPath: fullPath
+              })).appendTo("#uploads");
+                              
+              var files = [];
+              files.push(file);
+              data.files = files;
+                              
+              var jqXHR = data.submit();
+              data.context.find("button").click(function(event) {
+                   jqXHR.abort();
+              });
+          }
+      }
+                     
     },
     
     progress: function(e, data) {
@@ -314,3 +363,50 @@ $(document).ready(function() {
   _reload("/");
   
 });
+
+var StringUtils = {
+    
+removeFinalSlash: function (path) {
+    if (!path) {
+        return "";
+    }
+    var lastCharPosition = path.length - 1;
+    return path.charAt(lastCharPosition) === "/"
+    ? path.substr(0, lastCharPosition)
+    : path;
+},
+    
+lastPathComponent: function (path) {
+    if (!path) {
+        return "";
+    }
+    var trimmedString = StringUtils.removeFinalSlash(path);
+    var separatorIndex = trimmedString.lastIndexOf("/");
+    if (separatorIndex !==-1 ) {
+        return trimmedString.substr(separatorIndex+1);
+    }
+    return trimmedString;
+},
+    
+isFileNameSupported: function (str) {
+    if (typeof str !== "string") {
+        return false;
+    }
+    if (str.length === 0 || str.toLowerCase()==='thumbs.db' || str.indexOf(".") === 0 ) {
+        return false;
+    }
+    return true;
+},
+    
+pathExtension: function (str) {
+    if (typeof str !== "string") {
+        return "";
+    }
+    var dotIndex = str.lastIndexOf(".");
+    if (dotIndex !==-1 ) {
+        return str.substr(dotIndex+1);
+    }
+    return "";
+}
+    
+};

@@ -52,6 +52,11 @@
   text-align: center;
 }
 
+.column-download {
+    width: 40px;
+    text-align: center;
+}
+
 .column-path {  
 }
 
