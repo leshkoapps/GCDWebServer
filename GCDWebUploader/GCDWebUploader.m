@@ -63,7 +63,7 @@ NS_ASSUME_NONNULL_END
 
 @dynamic delegate;
 
-- (instancetype)initWithUploadDirectory:(NSString*)path {
+- (instancetype)initWithUploadDirectory:(NSString*)path variables:(NSDictionary *)variables{
   if ((self = [super init])) {
     NSString* bundlePath = [[NSBundle bundleForClass:[GCDWebUploader class]] pathForResource:@"GCDWebUploader" ofType:@"bundle"];
     if (bundlePath == nil) {
@@ -126,24 +126,35 @@ NS_ASSUME_NONNULL_END
 #endif
                      footer = [NSString stringWithFormat:[siteBundle localizedStringForKey:@"FOOTER_FORMAT" value:@"" table:nil], name, version];
                    }
+                   
+                   NSMutableDictionary *resultVariables = [NSMutableDictionary new];
+                   
+                   NSDictionary *defaultVariables = @{
+                                 @"device" : device,
+                                 @"title" : title,
+                                 @"header" : header,
+                                 @"prologue" : prologue,
+                                 @"epilogue" : epilogue,
+                                 @"footer" : footer,
+                                 @"upload" : NSLocalizedString(@"Upload", nil),
+                                 @"refresh" : NSLocalizedString(@"Refresh", nil),
+                                 @"upload_in_progress" : NSLocalizedString(@"Upload in progress", nil),
+                                 @"new_folder" : NSLocalizedString(@"New Folder", nil),
+                                 @"enter_a_name_for_this_folder" : NSLocalizedString(@"Enter a name for this folder.", nil),
+                                 @"save" : NSLocalizedString(@"Save", nil),
+                                 @"cancel" : NSLocalizedString(@"Cancel", nil),
+                                 @"move" : NSLocalizedString(@"Move", nil),
+                                 @"enter_a_location_for_this_item" : NSLocalizedString(@"Enter a location for this item.", nil)
+                   };
+                   
+                   [resultVariables addEntriesFromDictionary:defaultVariables];
+                
+                   if(variables.count>0){
+                     [resultVariables addEntriesFromDictionary:variables];
+                   }
+                   
                    return [GCDWebServerDataResponse responseWithHTMLTemplate:(NSString*)[siteBundle pathForResource:@"index" ofType:@"html"]
-                                                                   variables:@{
-                                                                     @"device" : device,
-                                                                     @"title" : title,
-                                                                     @"header" : header,
-                                                                     @"prologue" : prologue,
-                                                                     @"epilogue" : epilogue,
-                                                                     @"footer" : footer,
-                                                                     @"upload" : NSLocalizedString(@"Upload", nil),
-                                                                     @"refresh" : NSLocalizedString(@"Refresh", nil),
-                                                                     @"upload_in_progress" : NSLocalizedString(@"Upload in progress", nil),
-                                                                     @"new_folder" : NSLocalizedString(@"New Folder", nil),
-                                                                     @"enter_a_name_for_this_folder" : NSLocalizedString(@"Enter a name for this folder.", nil),
-                                                                     @"save" : NSLocalizedString(@"Save", nil),
-                                                                     @"cancel" : NSLocalizedString(@"Cancel", nil),
-                                                                     @"move" : NSLocalizedString(@"Move", nil),
-                                                                     @"enter_a_location_for_this_item" : NSLocalizedString(@"Enter a location for this item.", nil),
-                                                                   }];
+                                                                   variables:resultVariables];
 
                  }];
 

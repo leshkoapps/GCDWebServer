@@ -64,6 +64,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)webUploader:(GCDWebUploader*)uploader didCreateDirectoryAtPath:(NSString*)path;
 
+/**
+ *  This method is called whenever a directory needs to be downloaded.
+ */
+- (NSString *)webUploader:(GCDWebUploader *)uploader wantsToDownloadDirectoryAtPath:(NSString*)path;
+
 @end
 
 /**
@@ -156,7 +161,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  *  This method is the designated initializer for the class.
  */
-- (instancetype)initWithUploadDirectory:(NSString*)path;
+- (instancetype)initWithUploadDirectory:(NSString*)path variables:(NSDictionary *)variables;
 
 @end
 
