@@ -77,7 +77,7 @@ NS_ASSUME_NONNULL_END
     GCDWebUploader* __unsafe_unretained server = self;
 
     // Resource files
-    [self addGETHandlerForBasePath:@"/" directoryPath:(NSString*)[siteBundle resourcePath] indexFilename:nil cacheAge:3600 allowRangeRequests:NO];
+    [self addGETHandlerForBasePath:@"/" directoryPath:(NSString*)[siteBundle resourcePath] indexFilename:nil cacheAge:3600 allowRangeRequests:YES];
     
     // Web page
     [self addHandlerForMethod:@"GET"
@@ -179,7 +179,7 @@ NS_ASSUME_NONNULL_END
                          path:@"/openfile"
                  requestClass:[GCDWebServerRequest class]
                  processBlock:^GCDWebServerResponse*(GCDWebServerRequest* request) {
-                   return [server downloadFile:request  isAttachment:NO];
+                   return [server downloadFile:request isAttachment:NO];
                  }];
     
 
@@ -277,19 +277,64 @@ NS_ASSUME_NONNULL_END
   NSMutableArray* array = [NSMutableArray array];
   for (NSString* item in [contents sortedArrayUsingSelector:@selector(localizedStandardCompare:)]) {
     if (_allowHiddenItems || ![item hasPrefix:@"."]) {
-      NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:[absolutePath stringByAppendingPathComponent:item] error:NULL];
+      NSString *fileAbsolutePath = [absolutePath stringByAppendingPathComponent:item];
+      NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:fileAbsolutePath error:NULL];
       NSString* type = [attributes objectForKey:NSFileType];
       if ([type isEqualToString:NSFileTypeRegular] && [self _checkFileExtension:item]) {
+        
+        enum GCDWebUploaderFileContentType contentType = GCDWebUploaderFileContentTypeUnknown;
+        if([self.delegate respondsToSelector:@selector(webUploader:fileContentTypeAtPath:)]){
+          contentType = [self.delegate webUploader:self fileContentTypeAtPath:fileAbsolutePath];
+        }
+
+        NSString *contentTypeStr = @"file";
+        
+        switch (contentType) {
+          
+          case GCDWebUploaderFileContentTypeUnknown:
+            ;
+            break;
+            
+          case GCDWebUploaderFileContentTypeAudio:
+            contentTypeStr = @"music";
+            break;
+            
+          case GCDWebUploaderFileContentTypeVideo:
+            contentTypeStr = @"film";
+            break;
+            
+          case GCDWebUploaderFileContentTypeImage:
+            contentTypeStr = @"picture";
+            break;
+            
+          case GCDWebUploaderFileContentTypeText:
+            contentTypeStr = @"list";
+            break;
+            
+          case GCDWebUploaderFileContentTypeArchive:
+            contentTypeStr = @"compressed";
+            break;
+            
+          default:
+            ;
+            break;
+            
+        }
+        
         [array addObject:@{
           @"path" : [relativePath stringByAppendingPathComponent:item],
           @"name" : item,
-          @"size" : [attributes objectForKey:NSFileSize]
+          @"size" : [attributes objectForKey:NSFileSize],
+          @"content_type" : contentTypeStr,
+          @"file_type" : @"file"
         }];
       } else if ([type isEqualToString:NSFileTypeDirectory]) {
         [array addObject:@{
           @"path" : [[relativePath stringByAppendingPathComponent:item] stringByAppendingString:@"/"],
-          @"name" : item
+          @"name" : item,
+          @"file_type" : @"directory"
         }];
+        
       }
     }
   }
@@ -326,7 +371,18 @@ NS_ASSUME_NONNULL_END
       [self.delegate webUploader:self didDownloadFileAtPath:absolutePath];
     });
   }
-  return [GCDWebServerFileResponse responseWithFile:absolutePath isAttachment:isAttachment];
+  
+  GCDWebServerResponse *response = [GCDWebServerResponse responseWithStatusCode:kGCDWebServerHTTPStatusCode_NotFound];
+  if(isAttachment==NO){
+      response = [GCDWebServerFileResponse responseWithFile:absolutePath byteRange:request.byteRange];
+      [response setValue:@"bytes" forAdditionalHeader:@"Accept-Ranges"];
+  }
+  else{
+      response = [GCDWebServerFileResponse responseWithFile:absolutePath isAttachment:isAttachment];
+  }
+  
+  return response;
+  
 }
 
 - (GCDWebServerResponse*)uploadFile:(GCDWebServerMultiPartFormRequest*)request {

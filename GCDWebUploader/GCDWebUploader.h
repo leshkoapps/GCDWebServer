@@ -27,7 +27,17 @@
 
 #import "GCDWebServer.h"
 
+
 NS_ASSUME_NONNULL_BEGIN
+
+typedef NS_ENUM(NSUInteger, GCDWebUploaderFileContentType){
+  GCDWebUploaderFileContentTypeUnknown = 0,
+  GCDWebUploaderFileContentTypeAudio,
+  GCDWebUploaderFileContentTypeVideo,
+  GCDWebUploaderFileContentTypeImage,
+  GCDWebUploaderFileContentTypeText,
+  GCDWebUploaderFileContentTypeArchive
+};
 
 @class GCDWebUploader;
 
@@ -68,6 +78,8 @@ NS_ASSUME_NONNULL_BEGIN
  *  This method is called whenever a directory needs to be downloaded.
  */
 - (NSString *)webUploader:(GCDWebUploader *)uploader wantsToDownloadDirectoryAtPath:(NSString*)path;
+
+- (enum GCDWebUploaderFileContentType)webUploader:(GCDWebUploader*)uploader fileContentTypeAtPath:(NSString*)path;
 
 @end
 

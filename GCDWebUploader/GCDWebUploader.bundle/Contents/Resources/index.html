@@ -140,9 +140,13 @@
     <script type="text/x-tmpl" id="template-listing">
       <tr class="row-file">
         <td class="column-icon">
-          {% if (o.size != null) { %}
+          {% if (o.file_type === "file") { %}
             <button type="button" class="btn btn-default btn-xs button-open-file">
-              <span class="glyphicon glyphicon-file"></span>
+              {% if (o.content_type != null) { %}
+                <span class="glyphicon glyphicon-{%=o.content_type%}"></span>
+              {% } else { %}
+                <span class="glyphicon glyphicon-file"></span>
+              {% } %}
             </button>
           {% } else { %}
             <button type="button" class="btn btn-default btn-xs button-open">
