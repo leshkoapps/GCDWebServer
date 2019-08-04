@@ -1,7 +1,7 @@
 /*
  Copyright (c) 2012-2019, Pierre-Olivier Latour
  All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
  * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
  * The name of Pierre-Olivier Latour may not be used to endorse
  or promote products derived from this software without specific
  prior written permission.
- 
+
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,25 +25,53 @@
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "GCDWebServerRequest.h"
+import GCDWebServers
+import UIKit
 
-NS_ASSUME_NONNULL_BEGIN
+class ViewController: UIViewController {
+  @IBOutlet var label: UILabel?
+  var webServer: GCDWebUploader!
 
-/**
- *  The GCDWebServerFileRequest subclass of GCDWebServerRequest stores the body
- *  of the HTTP request to a file on disk.
- */
-@interface GCDWebServerFileRequest : GCDWebServerRequest
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
 
-/**
- *  Returns the path to the temporary file containing the request body.
- *
- *  @warning This temporary file will be automatically deleted when the
- *  GCDWebServerFileRequest is deallocated. If you want to preserve this file,
- *  you must move it to a different location beforehand.
- */
-@property(nonatomic, readonly) NSString* temporaryPath;
+    let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
+    webServer = GCDWebUploader(uploadDirectory: documentsPath)
+    webServer.delegate = self
+    webServer.allowHiddenItems = true
+    if webServer.start() {
+      label?.text = "GCDWebServer running locally on port \(webServer.port)"
+    } else {
+      label?.text = "GCDWebServer not running!"
+    }
+  }
 
-@end
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
 
-NS_ASSUME_NONNULL_END
+    webServer.stop()
+    webServer = nil
+  }
+}
+
+extension ViewController: GCDWebUploaderDelegate {
+  func webUploader(_: GCDWebUploader, didUploadFileAtPath path: String) {
+    print("[UPLOAD] \(path)")
+  }
+
+  func webUploader(_: GCDWebUploader, didDownloadFileAtPath path: String) {
+    print("[DOWNLOAD] \(path)")
+  }
+
+  func webUploader(_: GCDWebUploader, didMoveItemFromPath fromPath: String, toPath: String) {
+    print("[MOVE] \(fromPath) -> \(toPath)")
+  }
+
+  func webUploader(_: GCDWebUploader, didCreateDirectoryAtPath path: String) {
+    print("[CREATE] \(path)")
+  }
+
+  func webUploader(_: GCDWebUploader, didDeleteItemAtPath path: String) {
+    print("[DELETE] \(path)")
+  }
+}
